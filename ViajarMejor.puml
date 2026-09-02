@@ -1,0 +1,118 @@
+@startuml ViajaMejor-Simplificado
+
+!define AWS_COLOR #FF9900
+!define SECURITY_COLOR #FF0000
+!define MONITOR_COLOR #FFD700
+
+' ============================================
+' CAPA 1: USUARIOS
+' ============================================
+actor "📱 App Móvil" as App
+actor "💻 Web App" as Web
+actor "👔 Operador" as Op
+
+' ============================================
+' CAPA 2: SEGURIDAD
+' ============================================
+rectangle "🔒 WAF + Shield" as WAF #SECURITY_COLOR
+rectangle "🌐 CloudFront" as CF #AWS_COLOR
+rectangle "🔒 API Gateway + Cognito" as API #SECURITY_COLOR
+
+' ============================================
+' CAPA 3: MICROSERVICIOS
+' ============================================
+package "MICROSERVICIOS (ECS FARGATE)" {
+    rectangle "👤 ms-usuarios" as USR
+    rectangle "🔍 ms-busqueda" as BUS
+    rectangle "📋 ms-reservas" as RES
+    rectangle "💳 ms-pagos" as PAG
+    rectangle "🔌 ms-integraciones" as INT
+    rectangle "⭐ ms-fidelizacion" as FID
+    rectangle "📧 ms-notificaciones" as NOT
+}
+
+' ============================================
+' CAPA 4: BASES DE DATOS
+' ============================================
+database "🗄️ Aurora" as DB1
+database "🗄️ Aurora" as DB2
+database "🗄️ Aurora" as DB3
+database "🗄️ Aurora" as DB4
+database "🗄️ Aurora" as DB5
+database "🗄️ Aurora" as DB6
+database "⚡ Redis" as Redis
+database "📦 S3" as S3
+
+' ============================================
+' CAPA 5: INTEGRACIÓN
+' ============================================
+queue "📨 SQS" as SQS
+rectangle "🔄 EventBridge" as EB
+queue "📢 SNS" as SNS
+
+' ============================================
+' CAPA 6: EXTERNOS
+' ============================================
+rectangle "✈️ Aerolíneas" as AER
+rectangle "🏨 Hoteles" as HOT
+rectangle "🚗 Vehículos" as VEH
+rectangle "⚡ Circuit Breaker" as CB #MONITOR_COLOR
+rectangle "💳 Pasarela" as PAS
+
+' ============================================
+' CAPA 7: OBSERVABILIDAD
+' ============================================
+rectangle "📊 CloudWatch" as CW #MONITOR_COLOR
+rectangle "🔍 X-Ray" as XR #MONITOR_COLOR
+
+' ============================================
+' CONEXIONES PRINCIPALES
+' ============================================
+
+App --> WAF
+Web --> WAF
+Op --> WAF
+WAF --> CF
+CF --> API
+
+API --> USR : "HTTP"
+API --> BUS : "HTTP"
+API --> RES : "HTTP"
+
+BUS --> INT : "HTTP\n⚡CB"
+RES --> PAG : "HTTP\n⚡CB"
+
+RES --> SQS : "Encola"
+SQS --> NOT : "Consume"
+
+RES --> EB : "Evento"
+EB --> FID : "Suscriptor"
+EB --> SNS : "Suscriptor"
+EB --> NOT : "Suscriptor"
+
+INT --> CB
+CB --> AER
+CB --> HOT
+CB --> VEH
+
+PAG --> PAS : "HTTP"
+PAS --> SQS : "Webhook"
+
+USR --> DB1
+BUS --> DB2
+RES --> DB3
+PAG --> DB4
+INT --> DB5
+FID --> DB6
+
+BUS --> Redis : "Caché"
+RES --> S3 : "Comprobantes"
+
+API --> CW : "📊"
+BUS --> CW : "📊"
+RES --> CW : "📊"
+SQS --> CW : "📊"
+
+RES --> XR : "🔍"
+INT --> XR : "🔍"
+@enduml
